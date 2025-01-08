@@ -1,8 +1,8 @@
 <script lang="ts">
-    import '../app.css'
+	import '../app.css';
 </script>
 
 <svelte:head>
-    <title>Minesweeper Online</title>
+	<title>Minesweeper Online</title>
 </svelte:head>
-<slot/>
+<slot />
