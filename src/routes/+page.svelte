@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { icons } from './icons.ts';
+	import { Icons } from './icons.ts';
 	type State = 'start' | 'playing' | 'paused' | 'won' | 'lost';
 
 	let state: State = 'start';
 	let mineCount: number = 10;
 	let boardSize: number = 100;
+	let minePositions = new Set<string>();
 	let board: (string | number)[][] = createBoard();
 	let N = board.length,
 		M = board[0].length;
@@ -22,8 +23,9 @@
 			mineSet.add([Math.floor(Math.random() * 10), Math.floor(Math.random() * 10)].join(''));
 		}
 		for (let [i, j] of mineSet) {
-			arr[+i][+j] = icons[0];
+			arr[+i][+j] = Icons.Explode;
 		}
+		minePositions = mineSet;
 		return calculateDistance(arr);
 		// return ([] as (string | number)[]).concat(...calculateDistance(arr))
 	}
@@ -61,12 +63,21 @@
 		opened = opened.add(location);
 		if (board[+location[0]][+location[1]] == '') {
 			dfs(location);
+		} else if (minePositions.has(location)) {
+			state = 'lost'
+			for (let mineLoc of minePositions) {
+				opened.add(mineLoc);
+			} 
 		}
 	}
 
 	function gameWon() {
 		state = 'won';
-		reset();
+		for (let mineLoc of minePositions) {
+			opened.add(mineLoc);
+			let [i, j] = mineLoc
+			board[+i][+j] = Icons.Flag
+		} 
 	}
 
 	function dfs(index: string) {
@@ -87,11 +98,13 @@
 	}
 
 	function reset() {
+		opened = new Set<string>();
+		minePositions = new Set<string>();
 		board = createBoard();
-		opened.clear();
 		timerId && clearInterval(timerId);
 		timerId = null;
 		time = 0;
+		state = 'playing'
 	}
 
 	function startGameTimer() {
@@ -99,6 +112,13 @@
 			state == 'playing' && (time += 1);
 		}
 		timerId = setInterval(timer, 1000);
+	}
+
+	function getFormattedTime(t: number) {
+		const minutes = Math.floor(t / 60);
+		const seconds = t % 60;
+		return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
 	}
 
 	$: if (state === 'playing') {
@@ -113,10 +133,25 @@
 	<button on:click={() => (state = 'playing')}>Play</button>
 {/if}
 
-{#if state == 'playing'}
-	<h2 class="timer">
-		{time}
+{#if state == 'playing' || state == 'won' || state == 'lost'}
+{@const isPlaying = (state == 'playing')}
+<div class="header">
+	<h2 class="mineCount">{Icons.Mine} : {mineCount}</h2>
+
+	<h2 class="flagButton">
+		<button on:click={() => !isPlaying && reset()}>
+			{#if !isPlaying}
+				{Icons.Reload}
+			{:else} {Icons.Flag}
+			{/if}
+		</button>
 	</h2>
+
+	<h2 class="timer">
+		{getFormattedTime(time)}
+	</h2>
+</div>
+	
 	<div class="cards">
 		{#each board as row, rowIndex}
 			{#each row as card, cardIndex}
@@ -134,36 +169,28 @@
 	</div>
 {/if}
 
-{#if state === 'lost'}
-	<h1>You lost!</h1>
-	<button on:click={() => (state = 'playing')}>Play again</button>
-{/if}
-
-{#if state === 'won'}
-	<h1>You win!</h1>
-	<button on:click={() => (state = 'playing')}>Play again</button>
-{/if}
 
 <style>
 	.cards {
 		display: grid;
 		grid-template-columns: repeat(10, 1fr);
-		gap: 0.4rem;
+		gap: 0.5rem;
 	}
 
 	.card {
-		height: 80px;
-		width: 80px;
+		height: 1rem;
+		width: 1rem;
 		font-size: 2rem;
 		background-color: var(--bg-2);
 		transform-style: preserve-3d;
 
 		&.opened .back {
 			opacity: 1;
-			font-size: 2.5rem;
+			font-size: 2rem;
 			pointer-events: none;
 			place-content: center;
 			backface-visibility: visible;
+
 			background-color: var(--bg-1);
 			transition: opacity 0.3s ease-out;
 		}
@@ -173,13 +200,13 @@
 			width: 100%;
 			height: 100%;
 			background-color: var(--bg-2);
-			border-radius: 8px;
+			border-radius: 2px;
 			position: absolute;
 			backface-visibility: hidden;
 			top: 0;
 			left: 0;
 			z-index: 2; /* Cover stays above the hidden item */
-			transition: opacity 0.5s ease; /* Smooth fade-out animation */
+			transition: opacity 0s ease; /* Smooth fade-out animation */
 		}
 	}
 	.card:hover {
@@ -188,5 +215,24 @@
 
 	.timer {
 		transition: color 0.3s ease;
+		min-width: 80px;
+	}
+
+	.mineCount {
+		font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+	}
+
+	.header {
+      display: flex; /* Flexbox to align items in a row */
+      justify-content: space-between; /* Even spacing between items */
+      align-items: center; /* Center items vertically */
+      width: 100%; /* Adjust as needed */
+	  margin-bottom: 2rem;
+    }
+
+	.header .flagButton {
+		font-size: 10px;
+		border-radius: 4px;
+		border: 1px solid var(--border);
 	}
 </style>

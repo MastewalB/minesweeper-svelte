@@ -29,7 +29,7 @@ body {
 }
 
 h1 {
-	font-size: 4rem;
+	font-size: 3rem;
 	text-align: center;
 	text-transform: capitalize;
 }
@@ -43,7 +43,7 @@ h1 + button {
 
 button {
 	padding: 1.5rem;
-	font-size: 2rem;
+	font-size: 1rem;
 	font-weight: 900;
 	color: inherit;
 	background: none;
