@@ -6,7 +6,11 @@
 	let mineCount: number = 10;
 	let boardSize: number = 100;
 	let board: (string | number)[][] = createBoard();
+	let N = board.length,
+		M = board[0].length;
 	let opened = new Set<string>();
+	let timerId: number | null = null;
+	let time = 0;
 
 	function createBoard() {
 		let mineSet = new Set<string>();
@@ -55,14 +59,53 @@
 
 	function openCard(location: string) {
 		opened = opened.add(location);
+		if (board[+location[0]][+location[1]] == '') {
+			dfs(location);
+		}
 	}
 
 	function gameWon() {
 		state = 'won';
+		reset();
+	}
+
+	function dfs(index: string) {
+		let [i, j] = index;
+		if (typeof board[+i][+j] == 'number') {
+			return;
+		}
+		let DIR = [-1, 0, 1, 0, -1, -1, 1, 1, -1];
+
+		for (let d = 0; d < 8; d++) {
+			let ni = +i + DIR[d],
+				nj = +j + DIR[d + 1];
+			if (ni >= 0 && nj >= 0 && ni < N && nj < M && !opened.has([ni, nj].join(''))) {
+				opened.add([ni, nj].join(''));
+				dfs([ni, nj].join(''));
+			}
+		}
+	}
+
+	function reset() {
+		board = createBoard();
+		opened.clear();
+		timerId && clearInterval(timerId);
+		timerId = null;
+		time = 0;
+	}
+
+	function startGameTimer() {
+		function timer() {
+			state == 'playing' && (time += 1);
+		}
+		timerId = setInterval(timer, 1000);
+	}
+
+	$: if (state === 'playing') {
+		!timerId && startGameTimer();
 	}
 
 	$: boardSize - opened.size == mineCount && gameWon();
-	$: console.log(opened);
 </script>
 
 {#if state == 'start'}
@@ -71,6 +114,9 @@
 {/if}
 
 {#if state == 'playing'}
+	<h2 class="timer">
+		{time}
+	</h2>
 	<div class="cards">
 		{#each board as row, rowIndex}
 			{#each row as card, cardIndex}
@@ -86,6 +132,16 @@
 			{/each}
 		{/each}
 	</div>
+{/if}
+
+{#if state === 'lost'}
+	<h1>You lost!</h1>
+	<button on:click={() => (state = 'playing')}>Play again</button>
+{/if}
+
+{#if state === 'won'}
+	<h1>You win!</h1>
+	<button on:click={() => (state = 'playing')}>Play again</button>
 {/if}
 
 <style>
@@ -128,5 +184,9 @@
 	}
 	.card:hover {
 		transform: scale(1.1);
+	}
+
+	.timer {
+		transition: color 0.3s ease;
 	}
 </style>
