@@ -12,6 +12,7 @@
 	--bg-2: hsl(220 20% 20%);
 	--border: hsl(180 100% 50%);
 	--pulse: hsl(9 100% 64%);
+	--board-width: 10;
 }
 
 html,
@@ -21,7 +22,6 @@ body {
 
 body {
 	display: grid;
-	place-content: center;
 	padding: 2rem;
 	font-family: 'Poppins', sans-serif;
 	color: var(--txt-1);
@@ -43,12 +43,10 @@ h1 + button {
 
 button {
 	padding: 1.5rem;
-	font-size: 1rem;
 	font-weight: 900;
 	color: inherit;
 	background: none;
 	border-radius: 8px;
 	border: none;
-	text-transform: uppercase;
 	cursor: pointer;
 }
