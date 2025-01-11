@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { type GameMode, Icons, GameState, easyMode, mediumMode, hardMode } from './constants.ts';
+	import { parseIndexString, stringifyIndexList } from './utils.ts';
 	import { browser } from '$app/environment';
 
 	let state: GameState = GameState.START;
@@ -22,15 +23,14 @@
 			arr.push(Array.from({ length: h }, () => 0));
 		}
 		while (mineSet.size < mode.mineCount) {
-			mineSet.add([Math.floor(Math.random() * v), Math.floor(Math.random() * h)].join(','));
+			mineSet.add(stringifyIndexList(Math.floor(Math.random() * v), Math.floor(Math.random() * h)));
 		}
 		for (let s of mineSet) {
-			let [i, j] = strToInt(s);
+			let [i, j] = parseIndexString(s);
 			arr[i][j] = Icons.Explode;
 		}
 		minePositions = mineSet;
 		return calculateDistance(arr);
-		// return ([] as (string | number)[]).concat(...calculateDistance(arr))
 	}
 
 	function calculateDistance(arr: (string | number)[][]) {
@@ -64,7 +64,7 @@
 
 	function openCard(location: string) {
 		opened = opened.add(location);
-		let [i, j] = strToInt(location);
+		let [i, j] = parseIndexString(location);
 		if (board[i][j] == '') {
 			dfs(location);
 		} else if (minePositions.has(location)) {
@@ -79,13 +79,13 @@
 		state = GameState.WON;
 		for (let mineLoc of minePositions) {
 			opened.add(mineLoc);
-			let [i, j] = strToInt(mineLoc);
+			let [i, j] = parseIndexString(mineLoc);
 			board[i][j] = Icons.Flag;
 		}
 	}
 
 	function dfs(index: string) {
-		let [i, j] = strToInt(index);
+		let [i, j] = parseIndexString(index);
 		if (typeof board[i][j] == 'number') {
 			return;
 		}
@@ -94,9 +94,10 @@
 		for (let d = 0; d < 8; d++) {
 			let ni = i + DIR[d],
 				nj = j + DIR[d + 1];
-			if (ni >= 0 && nj >= 0 && ni < N && nj < M && !opened.has([ni, nj].join(','))) {
-				opened.add([ni, nj].join(','));
-				dfs([ni, nj].join(','));
+			let strIndex = stringifyIndexList(ni, nj);
+			if (ni >= 0 && nj >= 0 && ni < N && nj < M && !opened.has(strIndex)) {
+				opened.add(strIndex);
+				dfs(strIndex);
 			}
 		}
 	}
@@ -125,11 +126,6 @@
 		const minutes = Math.floor(t / 60);
 		const seconds = t % 60;
 		return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-	}
-
-	function strToInt(loc: string): Array<number> {
-		let indices = loc.split(',').map((x) => +x);
-		return indices;
 	}
 
 	let cellSize: number = 1;
@@ -203,13 +199,10 @@
 		<div class="cards" style="grid-template-columns: repeat({mode.width}, 1fr);">
 			{#each board as row, rowIndex}
 				{#each row as card, cardIndex}
-					{@const isOpened = opened.has([rowIndex, cardIndex].join(','))}
+					{@const strIndex = stringifyIndexList(rowIndex, cardIndex)}
+					{@const isOpened = opened.has(strIndex)}
 
-					<button
-						class="card"
-						class:opened={isOpened}
-						on:click={() => openCard([rowIndex, cardIndex].join(','))}
-					>
+					<button class="card" class:opened={isOpened} on:click={() => openCard(strIndex)}>
 						<div class="back" class:opened>{card}</div>
 					</button>
 				{/each}
@@ -282,7 +275,7 @@
 		display: flex; /* Flexbox to align items in a row */
 		justify-content: space-between; /* Even spacing between items */
 		align-items: center; /* Center items vertically */
-		width: 40%; /* Adjust as needed */
+		width: 35%; /* Adjust as needed */
 		margin: 0 auto;
 		margin-bottom: 1rem;
 
@@ -292,7 +285,6 @@
 			justify-content: center;
 			text-align: center;
 			border-radius: 4px;
-			/* border: 1px solid var(--border); */
 		}
 
 		& .flagButton span {
@@ -303,6 +295,8 @@
 			display: inline-flex;
 			align-items: center;
 			font-size: 2rem;
+			padding: 0.5rem 1rem 1rem 1rem;
+			border: 1px solid var(--border);
 		}
 	}
 
